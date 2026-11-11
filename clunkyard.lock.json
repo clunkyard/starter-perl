@@ -1,26 +1,46 @@
 {
-  "version": "v2.0.0-kit.1",
+  "version": "v2.0.0-kit.2",
   "sdkVersion": "2.0.0",
   "language": "perl",
   "portable": false,
   "engine": {
-    "file": "clunkyard-engine-v2.0.0-kit.1.tar.gz",
-    "url": "https://github.com/clunkyard/game-kit/releases/download/v2.0.0-kit.1/clunkyard-engine-v2.0.0-kit.1.tar.gz",
+    "file": "clunkyard-engine-v2.0.0-kit.2.tar.gz",
+    "url": "https://github.com/clunkyard/game-kit/releases/download/v2.0.0-kit.2/clunkyard-engine-v2.0.0-kit.2.tar.gz",
     "bytes": 7071301,
     "sha256": "0b9cfa6958a952c32388602821ec4275e61400255f91b212f9c2a9220f8a0d86",
     "expandedBytes": 33794538
   },
   "sdk": {
-    "file": "clunkyard-sdk-perl-linux-x64-v2.0.0-kit.1.tar.gz",
-    "url": "https://github.com/clunkyard/game-kit/releases/download/v2.0.0-kit.1/clunkyard-sdk-perl-linux-x64-v2.0.0-kit.1.tar.gz",
-    "bytes": 781568,
-    "sha256": "ec6e6ed04e3b3d7bc1576a0f2bb41eec6b17dd52735656a02502bf56ca683596",
-    "expandedBytes": 4087158
+    "file": "clunkyard-sdk-perl-linux-x64-v2.0.0-kit.2.tar.gz",
+    "url": "https://github.com/clunkyard/game-kit/releases/download/v2.0.0-kit.2/clunkyard-sdk-perl-linux-x64-v2.0.0-kit.2.tar.gz",
+    "bytes": 753538,
+    "sha256": "0e255913c2cd5232d12ce387b7a5a051c8ef53578a91d181de971c27ee709552",
+    "expandedBytes": 3871326
   },
-  "rebuildBindings": [],
+  "rebuildBindings": [
+    "perl"
+  ],
   "tools": [
     "node",
     "make",
-    "perl"
-  ]
+    "perl",
+    "cc"
+  ],
+  "requirements": {
+    "checks": [
+      {
+        "label": "Perl embedding headers",
+        "command": "perl",
+        "args": [
+          "-MConfig",
+          "-e",
+          "exit(-f \"$Config{archlib}/CORE/perl.h\" ? 0 : 1)"
+        ],
+        "hint": "Install the Perl development headers (libperl-dev on Ubuntu) and a C compiler."
+      }
+    ],
+    "notes": [
+      "The Perl XS shim is rebuilt for your Perl installation. Install Perl development headers and a C compiler; do not reuse an XS binary from another Perl version."
+    ]
+  }
 }
