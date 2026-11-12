@@ -86,23 +86,6 @@ sub on_turn {
     my$climb=$zone->{shape}eq'sphere'?$angles->elevation_to($me->position,$zone->{center}):0;
     $self->drive->set(throttle=>0.8,turn=>$angles->clamp($angles->angle_diff($angles->bearing_to($me->position,$zone->{center}),$me->heading)/30),pitch_turn=>$angles->clamp(($climb-$me->pitch)/30));
   }
-  # The arena's rate calibration only; safe to delete.
-  my$work=$self->raw->number('state.calibration.work');
-  $self->status->set(text=>'WORK',value=>calibration_work($work,$self->clock->tick))if defined($work)&&$work>0&&int($work)==$work;
 }
-# The calibration kernel, xorshift-sqrt v1: work rounds of a 64-bit xorshift
-# and a square-root sum, in Perl's unsigned 64-bit integers.
-sub calibration_work {
-  my ($work, $tick) = @_;
-  my ($x, $sum) = (88172645463325252 ^ $tick, 0.0);
-  for (1 .. $work) {
-    $x ^= $x << 13;
-    $x ^= $x >> 7;
-    $x ^= $x << 17;
-    $sum += sqrt($x >> 11);
-  }
-  return (int($sum) + ($x >> 40)) % 1000000;
-}
-
 package main;
 Clunkyard::run(Starter->new);
