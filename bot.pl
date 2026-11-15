@@ -7,7 +7,8 @@
 # clock: tick seconds remaining_ticks
 # arena: size gravity terrain_kind ground_height(x y)
 # me: health position velocity heading pitch roll angular_velocity
-#   attitude grounded altitude applied
+#   attitude grounded altitude applied hull_mounts to_mount(heading pitch)
+#   from_mount(heading pitch) mount_toward(point)
 # battery: charge capacity regen sustainable_drive compute
 #   drive_cost(fraction)
 # drive: hover_lift
@@ -29,7 +30,8 @@
 # score: me best armour
 # angles: normalize(degrees) angle_diff(target current)
 #   bearing_to(from to) elevation_to(from to) direction(heading pitch)
-#   distance(a b) clamp(value low high)
+#   distance(a b) to_chassis(heading pitch attitude)
+#   from_chassis(heading pitch attitude) clamp(value low high)
 # raw: number(path) text(path) has(path) flag(path) count(path) line()
 # Controls: drive.set(throttle turn pitch_turn)
 #   drive.forces(thrust strafe lift yaw_torque pitch_torque roll_torque brake)
@@ -47,7 +49,7 @@ use Clunkyard;
 package Starter;
 use parent -norequire, 'Clunkyard::Robot';
 sub steer {Clunkyard::angles()->clamp(Clunkyard::angles()->angle_diff($_[0],$_[1])/45)}
-sub on_start {my($self)=@_;$self->{free}=$self->match->is_3d && $self->arena->gravity->{z}==0;}
+sub on_start {my($self)=@_;$self->{free}=$self->match->is_3d && $self->arena->gravity->{z}==0;@$self{qw(dodges dodge_end)}=(0,0);}
 sub on_turn {
   my($self)=@_;my($me,$gun,$scanner,$angles)=($self->me,$self->gun,$self->scanner,Clunkyard::angles());
   $self->drive->forces(brake=>0.2);
@@ -56,6 +58,7 @@ sub on_turn {
     my$throttle=$target->{range}>350?0.7:$target->{range}<200?-0.4:0.2;
     $self->drive->set(throttle=>$throttle,turn=>steer($target->{bearing},$me->heading),pitch_turn=>steer($target->{elevation},$me->pitch));
     $scanner->set(heading=>$target->{bearing},arc=>20,pitch=>$target->{elevation});
+    # gun.lead is the intercept if the target holds course.
     my$power=$gun->power_for_flight_time($target->{range},1);my$aim=$gun->lead($target,$power);
     my($heading,$pitch)=$aim?($aim->{heading},$aim->{pitch}):($target->{bearing},$target->{elevation});
     $gun->aim(heading=>$heading,pitch=>$pitch);my$now=$gun->aim_now;
@@ -74,6 +77,18 @@ sub on_turn {
     $self->drive->set(throttle=>0.5,turn=>0.33,pitch_turn=>steer(0,$me->pitch));
     $scanner->set(heading=>$angles->normalize($scanner->last->{heading}+36),arc=>40,pitch=>$up);
     $self->status->set(text=>'SEARCH');
+  }
+  # A simple dodge: vary it, or predict the shooter.
+  my$tick=$self->clock->tick;
+  if($tick>=$self->{dodge_end} && grep {$_->{source} eq 'muzzle'} @{$self->sensors->cues}){
+    $self->{dodges}++;$self->{dodge_end}=$tick+10;
+  }
+  if($tick<$self->{dodge_end}){
+    # Off the line of fire: left, then right next time (turn is positive left, strafe right).
+    my$left=$self->{dodges}%2==1;
+    if($self->match->control eq 'forces'){$self->drive->set(throttle=>0.5);$self->drive->forces(strafe=>$left?-1:1);}
+    else{$self->drive->set(throttle=>1,turn=>$left?1:-1);}
+    $self->status->set(text=>$left?'dodge:left':'dodge:right',value=>$self->{dodges});
   }
   $self->drive->set(throttle=>$self->drive->get('throttle')*0.5)if$self->battery->charge<$self->battery->capacity/4;
   my$storm=$self->nav->storm;
